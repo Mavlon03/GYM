@@ -1,4 +1,6 @@
 <%@ page import="uz.pdp.gym.repo.AdminRepo" %>
+<%@ page import="uz.pdp.gym.config.Admin" %>
+<%@ page import="java.util.List" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <html>
 <head>
@@ -14,7 +16,7 @@
     <form action="/add/admin" method="post">
         <!-- First Name -->
         <div class="mb-3">
-            <input type="text" class="form-control" name="firstname" placeholder="Enter firstname" required>
+            <input type="text" class="form-control" name="firstname"laceholder="Enter firstname" required>
         </div>
 
         <!-- Last Name -->
@@ -33,6 +35,46 @@
         </div>
     </form>
 </div>
+
+<%
+    AdminRepo adminRepo = new AdminRepo();
+    List<Admin> admins = adminRepo.findAll();
+%>
+<a href="/add.jsp">Back</a>
+<table class="table mt-3">
+    <thead>
+    <tr>
+        <td>Id</td>
+        <td>Firstname</td>
+        <td>Lastname</td>
+        <td>password</td>
+        <td>Role</td>
+        <td>Action</td>
+
+    </tr>
+    </thead>
+    <tbody>
+    <%
+        for (Admin admin : admins) {
+    %>
+    <tr>
+        <td><%= admin.getId() %></td>
+        <td><%= admin.getFirstname() %></td>
+        <td><%= admin.getLastname() %></td>
+        <td><%= admin.getPassword() %></td>
+        <td><%= admin.getRoles() %></td>
+        <td>
+            <form action="/remove/admin" method="post">
+                <input type="hidden" value="<%=admin.getId()%>" name="id">
+                <button class="btn btn-danger">Delete</button>
+            </form>
+        </td>
+    </tr>
+    <%
+        }
+    %>
+    </tbody>
+</table>
 
 </body>
 </html>

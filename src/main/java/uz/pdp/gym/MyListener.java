@@ -2,6 +2,7 @@ package uz.pdp.gym;
 
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
+import uz.pdp.gym.repo.SubscriberRepo;
 
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
@@ -13,5 +14,14 @@ public class MyListener implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent sce) {
         EMF = Persistence.createEntityManagerFactory("default");
+        SubscriberRepo.updateExpiredSubscribersStatus();
+
+    }
+
+    @Override
+    public void contextDestroyed(ServletContextEvent sce) {
+        if (EMF != null) {
+            EMF.close();
+        }
     }
 }

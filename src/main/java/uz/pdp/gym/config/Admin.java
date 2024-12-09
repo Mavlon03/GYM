@@ -16,6 +16,8 @@ public class Admin extends BaseEntity {
     private String firstname;
     private String lastname;
     private String password;
-    private String roles ;
+
+    @Enumerated(EnumType.STRING)
+    private Roles roles ;
 
 }

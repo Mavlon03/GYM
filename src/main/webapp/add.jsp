@@ -54,6 +54,7 @@
         <td>Daily</td>
         <td>Monthly</td>
         <td>Yearly</td>
+        <td>Action</td>
     </tr>
     </thead>
     <tbody>
@@ -69,7 +70,7 @@
         <td><%= subscriber.getFirstname() %></td>
         <td><%= subscriber.getLastname() %></td>
         <td><%= subscriber.getAge() %></td>
-        <td><%= subscriber.getRole() %></td>
+        <td><%= subscriber.getRoles() %></td>
         <td><%= subscriber.getStatus() ? "On✅" : "Off❌" %></td>
         <td><%= subscriber.getPhone() %></td>
         <td><%=subscriber.getCreatedAt() %></td>
@@ -78,7 +79,12 @@
         <td><%= subscriber.getTrainingTime() != null && subscriber.getTrainingTime().getKunlik() != null ? subscriber.getTrainingTime().getKunlik() : "❌ " %></td>
         <td><%= subscriber.getTrainingTime() != null && subscriber.getTrainingTime().getOylik() != null ? subscriber.getTrainingTime().getOylik() : "❌ " %></td>
         <td><%= subscriber.getTrainingTime() != null && subscriber.getTrainingTime().getYillik() != null ? subscriber.getTrainingTime().getYillik() : "❌             " %></td>
-
+        <td>
+            <form action="/remove" method="post">
+                <input type="hidden" value="<%=subscriber.getId()%>" name="id">
+                <button class="btn btn-danger">Delete</button>
+            </form>
+        </td>
     </tr>
     <%
         }

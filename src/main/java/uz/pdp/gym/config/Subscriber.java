@@ -1,9 +1,6 @@
 package uz.pdp.gym.config;
 
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.Embedded;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Lob;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,26 +19,35 @@ public class Subscriber extends BaseEntity {
     private String lastname;
     private Integer age;
     private String phone;
-    private Boolean status; // "on/off" ni boolean sifatida saqlaymiz
-    private String  role;
+    private Boolean status;
+
+    @Enumerated(EnumType.STRING)
+    private Roles roles ;
 
     @Lob
     private byte[] photo;
 
     @Embedded
-    private TrainingTime trainingTime; // kunlik, oylik, yillik
+    private TrainingTime trainingTime;
 
     @CreationTimestamp
-    private LocalDateTime createdAt; // Foydalanuvchi ro'yxatdan o'tgan vaqt
+    private LocalDateTime createdAt;
 
+    @Column(name = "subscription_end")
     private LocalDateTime subscriptionEnd;
 
+
     public void updateStatus() {
-        if (subscriptionEnd != null && LocalDateTime.now().isAfter(subscriptionEnd)) {
-            this.status = false; // Muddat tugagan bo'lsa, "Off"
-        } else {
-            this.status = true; // Hozirgi vaqtga qadar abonement faol bo'lsa, "On"
+        if (this.subscriptionEnd != null) {
+            System.out.println("Subscription End: " + this.subscriptionEnd);
+            System.out.println("Current Time: " + LocalDateTime.now());
+            if (this.subscriptionEnd.isBefore(LocalDateTime.now())) {
+                this.status = false;
+                System.out.println("Status updated to false.");
+            }
         }
     }
+
+
 
 }

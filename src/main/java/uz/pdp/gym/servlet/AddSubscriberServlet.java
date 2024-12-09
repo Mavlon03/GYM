@@ -1,5 +1,6 @@
 package uz.pdp.gym.servlet;
 
+import uz.pdp.gym.config.Roles;
 import uz.pdp.gym.config.Subscriber;
 import uz.pdp.gym.config.TrainingTime;
 import uz.pdp.gym.repo.SubscriberRepo;
@@ -58,12 +59,11 @@ public class AddSubscriberServlet extends HttpServlet {
         subscriber.setAge(Integer.parseInt(age));
         subscriber.setPhone(phone);
         subscriber.setStatus(status);
-        subscriber.setRole("User");
+        subscriber.setRoles(Roles.USER);
         subscriber.setPhoto(photoBytes);
         subscriber.setTrainingTime(trainingTime);
         subscriber.setCreatedAt(LocalDateTime.now());
         subscriber.setSubscriptionEnd(subscriptionEnd);
-
 
         // Statusni yangilash
         subscriber.updateStatus();
