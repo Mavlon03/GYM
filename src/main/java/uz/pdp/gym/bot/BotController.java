@@ -4,9 +4,8 @@ import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.CallbackQuery;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
-import com.pengrad.telegrambot.model.request.KeyboardButton;
-import com.pengrad.telegrambot.model.request.ReplyKeyboardMarkup;
 import com.pengrad.telegrambot.request.SendMessage;
+import uz.pdp.gym.config.TgSubscribe;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,23 +41,31 @@ public class BotController {
     }
 
     private void handleCallbackQuery(CallbackQuery callbackQuery) {
+        String callbackData = callbackQuery.data();
+        Long chatId = callbackQuery.message().chat().id();
 
+        if ("SHOW_HISTORY".equals(callbackData)) {
+            TgSubscribe tgSubscribe = getOrCreateUser(chatId);
+            System.out.println("SHOW");
+            BotService.sendUserHistory(tgSubscribe, chatId); // Tarixni yuborish funksiyasi
+        } else if ("QR_CODE".equals(callbackData)) {
+            TgSubscribe tgSubscribe = getOrCreateUser(chatId);
+            System.out.println("QR code");
+            BotService.sendQRCodeForUser(tgSubscribe, chatId); // QR kodni yuborish funksiyasi
+        } else {
+            telegramBot.execute(new SendMessage(chatId, "Noto'g'ri buyruq!"));
+        }
     }
+
     private void handleMessage(Message message) {
         Long chatId = message.chat().id();
-        TgUser tgUser = getOrCreateUser(chatId);
+        TgSubscribe tgSubscribe = getOrCreateUser(chatId);
 
         if (message.text() != null && message.text().equals("/start")) {
-            acceptStartWelcomeMessage(tgUser);
+            acceptStartWelcomeMessage(tgSubscribe);
         } else if (message.contact() != null) {
-            acceptContactAndChooseMenu(tgUser, message.contact());
-        } else {
-            // Kontakt yuborishni so'rash
-            telegramBot.execute(new SendMessage(chatId, "Iltimos, telefon raqamingizni yuboring."));
-            ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup(
-                    new KeyboardButton("Telefon raqamni yuborish").requestContact(true)
-            );
-            telegramBot.execute(new SendMessage(chatId, "Kontaktni yuborish uchun tugmani bosing").replyMarkup(keyboard));
+            acceptContactAndChooseMenu(tgSubscribe, message.contact());
+            System.out.println(message.text());
         }
     }
 

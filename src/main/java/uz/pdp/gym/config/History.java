@@ -18,10 +18,10 @@ public class History extends BaseEntity {
 
     @ManyToOne
     @JoinColumn(name = "subscriber_id", nullable = false)
-    private Subscriber subscriber;
+    private TgSubscribe tgSubscribe;
     @ManyToOne
     @JoinColumn(name = "admin_id")
     private Admin admin;
 
-    private LocalDateTime scannedAt;
+    private LocalDateTime scanned_At;
 }

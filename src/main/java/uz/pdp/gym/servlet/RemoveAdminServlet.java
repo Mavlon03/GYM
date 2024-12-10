@@ -2,11 +2,9 @@ package uz.pdp.gym.servlet;
 
 import jakarta.persistence.EntityManager;
 import uz.pdp.gym.config.Admin;
-import uz.pdp.gym.config.Subscriber;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpFilter;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;

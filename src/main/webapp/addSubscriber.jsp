@@ -35,7 +35,7 @@
   <div class="form-container">
     <h2 class="form-title">Add Subscriber</h2>
 
-    <form action="/add/subscriber" method="post" enctype="multipart/form-data">
+    <form action="/add/tgSubscribe" method="post" enctype="multipart/form-data">
       <!-- First Name -->
       <div class="mb-3">
         <input type="text" class="form-control" name="firstname" placeholder="Enter firstname" required>

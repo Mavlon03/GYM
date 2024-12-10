@@ -1,7 +1,7 @@
 package uz.pdp.gym.servlet;
 
 import uz.pdp.gym.config.Roles;
-import uz.pdp.gym.config.Subscriber;
+import uz.pdp.gym.config.TgSubscribe;
 import uz.pdp.gym.config.TrainingTime;
 import uz.pdp.gym.repo.SubscriberRepo;
 
@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 
 @MultipartConfig
-@WebServlet("/add/subscriber")
+@WebServlet("/add/tgSubscribe")
 public class AddSubscriberServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -53,24 +53,24 @@ public class AddSubscriberServlet extends HttpServlet {
         }
 
         // Subscriber obyektini yaratish
-        Subscriber subscriber = new Subscriber();
-        subscriber.setFirstname(firstname);
-        subscriber.setLastname(lastname);
-        subscriber.setAge(Integer.parseInt(age));
-        subscriber.setPhone(phone);
-        subscriber.setStatus(status);
-        subscriber.setRoles(Roles.USER);
-        subscriber.setPhoto(photoBytes);
-        subscriber.setTrainingTime(trainingTime);
-        subscriber.setCreatedAt(LocalDateTime.now());
-        subscriber.setSubscriptionEnd(subscriptionEnd);
+        TgSubscribe tgSubscribe = new TgSubscribe();
+        tgSubscribe.setFirstname(firstname);
+        tgSubscribe.setLastname(lastname);
+        tgSubscribe.setAge(Integer.parseInt(age));
+        tgSubscribe.setPhone(phone);
+        tgSubscribe.setStatus(status);
+        tgSubscribe.setRoles(Roles.USER);
+        tgSubscribe.setPhoto(photoBytes);
+        tgSubscribe.setTrainingTime(trainingTime);
+        tgSubscribe.setCreatedAt(LocalDateTime.now());
+        tgSubscribe.setSubscriptionEnd(subscriptionEnd);
 
         // Statusni yangilash
-        subscriber.updateStatus();
+        tgSubscribe.updateStatus();
 
         // Ma'lumotni bazaga saqlash
         SubscriberRepo subscriberRepo = new SubscriberRepo();
-        subscriberRepo.save(subscriber);
+        subscriberRepo.save(tgSubscribe);
 
         // Muvaffaqiyatli saqlangandan so'ng foydalanuvchini boshqa sahifaga yo'naltirish
         resp.sendRedirect("/add.jsp");

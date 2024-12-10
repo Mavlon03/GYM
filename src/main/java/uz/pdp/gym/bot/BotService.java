@@ -1,54 +1,62 @@
 package uz.pdp.gym.bot;
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.MultiFormatWriter;
+import com.google.zxing.WriterException;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.model.Contact;
-import com.pengrad.telegrambot.model.request.KeyboardButton;
-import com.pengrad.telegrambot.model.request.ReplyKeyboardMarkup;
-import com.pengrad.telegrambot.model.request.ReplyKeyboardRemove;
+import com.pengrad.telegrambot.model.request.*;
 import com.pengrad.telegrambot.request.SendMessage;
+import com.pengrad.telegrambot.request.SendPhoto;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
-import uz.pdp.gym.repo.TgUserRepo;
+import uz.pdp.gym.config.Admin;
+import uz.pdp.gym.config.History;
+import uz.pdp.gym.config.TgSubscribe;
+import uz.pdp.gym.repo.*;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.Hashtable;
+import java.util.Scanner;
 
 public class BotService {
 
     public static TelegramBot telegramBot = new TelegramBot("7449264666:AAF8u0tmTIVTKcQDET8G-9joMuoI2G6AIac");
     private static final TgUserRepo tgUserRepo = new TgUserRepo();
+    private static  final SubscriberRepo subscriber = new SubscriberRepo();
     private static final EntityManagerFactory emf = Persistence.createEntityManagerFactory("default");
     private static final EntityManager em = emf.createEntityManager();
-    public static TgUser getOrCreateUser(Long chatId) {
-        // Foydalanuvchi mavjudligini tekshirib ko'ramiz
-        TgUser user = getUserFromDB(chatId);
+    public static TgSubscribe getOrCreateUser(Long chatId) {
+        TgSubscribe user = getUserFromDB(chatId);
 
-        // Agar foydalanuvchi topilmasa, yangi foydalanuvchi yaratamiz va ma'lumotlar bazasiga saqlaymiz
         if (user == null) {
-            user = new TgUser();
-            user.setChatId(chatId);
-//            user.setPhone("+998945060801");
-
-            // Ma'lumotlar bazasiga yozish
+            user = new TgSubscribe();
+            user.setChat_id(chatId);
             saveUserToDB(user);
         }
-
         return user;
     }
 
-    // Foydalanuvchini bazadan olish (JDBC yordamida)
-    private static TgUser getUserFromDB(Long chatId) {
-        String query = "SELECT * FROM tg_user WHERE chat_id = ?";
+    private static TgSubscribe getUserFromDB(Long chatId) {
+        String query = "SELECT * FROM TgSubscribe WHERE chat_id = ?";
         try (Connection connection = DB.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setLong(1, chatId);
             var resultSet = statement.executeQuery();
 
             if (resultSet.next()) {
-                TgUser user = new TgUser();
-                user.setChatId(resultSet.getLong("chat_id"));
+                TgSubscribe user = new TgSubscribe();
+                user.setChat_id(resultSet.getLong("chat_id"));
                 return user;
             }
         } catch (SQLException e) {
@@ -57,13 +65,12 @@ public class BotService {
         return null;
     }
 
-    // Foydalanuvchini ma'lumotlar bazasiga saqlash (JDBC yordamida)
-    private static void saveUserToDB(TgUser user) {
-        String query = "INSERT INTO tg_user (chat_id, phone) VALUES (?, ?)";
+    private static void saveUserToDB(TgSubscribe user) {
+        String query = "INSERT INTO TgSubscribe (chat_id, phone) VALUES (?, ?)";
 
         try (Connection connection = DB.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
-            statement.setLong(1, user.getChatId());
+            statement.setLong(1, user.getChat_id());
             statement.setString(2, user.getPhone());  // Telefon raqamini qo'shish
             statement.executeUpdate();
         } catch (SQLException e) {
@@ -71,10 +78,8 @@ public class BotService {
         }
     }
 
-
-    // Start xabarini yuborish va foydalanuvchidan telefon raqamini olish
-    public static void acceptStartWelcomeMessage(TgUser tgUser) {
-        SendMessage sendMessage = new SendMessage(tgUser.getChatId(),
+    public static void acceptStartWelcomeMessage(TgSubscribe tgSubscribe) {
+        SendMessage sendMessage = new SendMessage(tgSubscribe.getChat_id(),
                 "Assalomu aleykum\nBotimizga xush kelibsiz!\nIltimos kontaktingizni yuboring:");
         KeyboardButton keyboardButton = new KeyboardButton("Kontakt yuborish");
         keyboardButton.requestContact(true);
@@ -83,63 +88,69 @@ public class BotService {
 
         sendMessage.replyMarkup(replyKeyboardMarkup);
         telegramBot.execute(sendMessage);
-        tgUser.setTgState(TgState.MENU);  // Foydalanuvchi hali telefon raqamini yubormagan
+        tgSubscribe.setTgState(TgState.MENU);
     }
-
-    public static void acceptContactAndChooseMenu(TgUser tgUser, Contact contact) {
+    public static void acceptContactAndChooseMenu(TgSubscribe tgSubscribe, Contact contact) {
         if (contact != null && contact.phoneNumber() != null) {
             String phone = PhoneNumber.fix(contact.phoneNumber());
+            tgSubscribe.setPhone(phone);
+            saveOrUpdateUser(tgSubscribe);
 
-            // Telefon raqamni foydalanuvchiga o'rnatish va saqlash
-            tgUser.setPhone(phone);
-            saveOrUpdateUser(tgUser);
-
-            // Xabarlarni yuborish
-            SendMessage successMessage = new SendMessage(tgUser.getChatId(), "Kontaktingiz qabul qilindi.");
+            SendMessage successMessage = new SendMessage(tgSubscribe.getChat_id(), "Kontaktingiz qabul qilindi.");
             successMessage.replyMarkup(new ReplyKeyboardRemove());
             telegramBot.execute(successMessage);
 
-            SendMessage menuMessage = new SendMessage(tgUser.getChatId(), "Tanlang:");
-            menuMessage.replyMarkup(generateMenu());
-            telegramBot.execute(menuMessage);
+            SendMessage menuMessage = new SendMessage(tgSubscribe.getChat_id(), "Menuni tanlang:");
 
-            tgUser.setTgState(TgState.MENU);
+            menuMessage.replyMarkup(generateInlineMenu());
+            telegramBot.execute(menuMessage);
+            tgSubscribe.setTgState(TgState.CHOOSE);
+
         } else {
-            // Agar kontakt noto'g'ri bo'lsa
-            SendMessage errorMessage = new SendMessage(tgUser.getChatId(), "Iltimos, telefon raqamingizni qayta yuboring.");
+            SendMessage errorMessage = new SendMessage(tgSubscribe.getChat_id(), "Iltimos, telefon raqamingizni qayta yuboring.");
             telegramBot.execute(errorMessage);
         }
     }
 
-    private static void saveOrUpdateUser(TgUser user) {
+
+    private static InlineKeyboardMarkup generateInlineMenu() {
+        InlineKeyboardButton showHistoryButton = new InlineKeyboardButton("Show History").callbackData("SHOW_HISTORY");
+        InlineKeyboardButton qrCodeButton = new InlineKeyboardButton("QR Code").callbackData("QR_CODE");
+
+        InlineKeyboardMarkup inlineKeyboard = new InlineKeyboardMarkup(
+                showHistoryButton, qrCodeButton);
+
+        return inlineKeyboard;
+    }
+
+    private static void saveOrUpdateUser(TgSubscribe user) {
         String query;
-        if (userExists(user.getChatId())) {
-            // Agar foydalanuvchi mavjud bo'lsa, uni yangilash
-            query = "UPDATE tg_user SET phone = ? WHERE chat_id = ?";
+
+        if (userPhoneExists(user.getPhone())) {
+            query = "UPDATE TgSubscribe SET chat_id = ? WHERE phone = ?";
         } else {
-            // Agar foydalanuvchi mavjud bo'lmasa, uni qo'shish
-            query = "INSERT INTO tg_user (chat_id, phone) VALUES (?, ?)";
+            query = "INSERT INTO TgSubscribe (chat_id, phone) VALUES (?, ?)";
         }
 
         try (Connection connection = DB.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
-            statement.setString(1, user.getPhone());
-            statement.setLong(2, user.getChatId());
+            statement.setLong(1, user.getChat_id());
+            statement.setString(2, user.getPhone());
             statement.executeUpdate();
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    // Foydalanuvchi mavjudligini tekshirish
-    private static boolean userExists(Long chatId) {
-        String query = "SELECT COUNT(*) FROM tg_user WHERE chat_id = ?";
+    private static boolean userPhoneExists(String phone) {
+        String checkQuery = "SELECT COUNT(*) FROM TgSubscribe WHERE phone = ?";
         try (Connection connection = DB.getConnection();
-             PreparedStatement statement = connection.prepareStatement(query)) {
-            statement.setLong(1, chatId);
-            var resultSet = statement.executeQuery();
+             PreparedStatement statement = connection.prepareStatement(checkQuery)) {
+            statement.setString(1, phone);
+            ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
-                return resultSet.getInt(1) > 0;
+                return resultSet.getInt(1) > 0; // Agar bitta yoki undan ko'p natija bo'lsa, telefon mavjud
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -148,19 +159,83 @@ public class BotService {
     }
 
 
-    private static ReplyKeyboardMarkup generateMenu() {
-        KeyboardButton showHistoryButton = new KeyboardButton("Show History");
-        KeyboardButton qrCodeButton = new KeyboardButton("QR Code");
 
-        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup(showHistoryButton, qrCodeButton);
-        replyKeyboardMarkup.resizeKeyboard(true);
-        replyKeyboardMarkup.oneTimeKeyboard(true);
 
-        return replyKeyboardMarkup;
+
+
+
+
+
+    public static void sendUserHistory(TgSubscribe tgSubscribe, Long adminId) {
+        Admin admin = loginAdmin();
+        if (admin == null || !admin.getId().equals(adminId)) {
+            System.out.println("Adminlik huquqi tasdiqlanmadi yoki noto‘g‘ri ma'lumot kiritildi.");
+            System.out.println("Foydalanuvchi ma'lumotlari:");
+            System.out.println("Ism: " + tgSubscribe.getFirstname());
+            System.out.println("Familya: " + tgSubscribe.getLastname());
+            return;
+        }
+
+        History history = new History();
+        history.setTgSubscribe(tgSubscribe);
+        history.setAdmin(admin);
+        history.setScanned_At(LocalDateTime.now());
+
+        try {
+            em.getTransaction().begin();
+            em.persist(history);
+            em.getTransaction().commit();
+            System.out.println("Tarix muvaffaqiyatli qo‘shildi.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            em.getTransaction().rollback();
+        }
+    }
+
+    private static Admin loginAdmin() {
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Admin ismini kiriting: ");
+        String firstname = scanner.nextLine();
+        System.out.print("Parolni kiriting: ");
+        String password = scanner.nextLine();
+
+        try {
+            String query = "SELECT a FROM Admin a WHERE a.firstname = :firstname AND a.password = :password";
+            return em.createQuery(query, Admin.class)
+                    .setParameter("firstname", firstname)
+                    .setParameter("password", password)
+                    .getSingleResult();
+        } catch (Exception e) {
+            System.out.println("Login ma'lumotlari noto‘g‘ri yoki admin topilmadi.");
+            return null;
+        }
+    }
+
+
+    public static void sendQRCodeForUser(TgSubscribe tgSubscribe, Long chatId) {
+        try {
+            String qrData = "http:192.168.35.183/user:" + tgSubscribe.getChat_id();  // QR kodda foydalanuvchi haqida ma'lumot saqlanadi
+            byte[] qrImage = generateQRCode(qrData);
+
+            SendPhoto sendPhoto = new SendPhoto(tgSubscribe.getChat_id(), qrImage);
+            telegramBot.execute(sendPhoto);
+        } catch (WriterException | IOException e) {
+            e.printStackTrace();
+        }
+    }
+    private static byte[] generateQRCode(String data) throws WriterException, IOException {
+        Hashtable<EncodeHintType, Object> hints = new Hashtable<>();
+        hints.put(EncodeHintType.MARGIN, 1);
+
+        MultiFormatWriter writer = new MultiFormatWriter();
+        BitMatrix bitMatrix = writer.encode(data, BarcodeFormat.QR_CODE, 200, 200, hints);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        MatrixToImageWriter.writeToStream(bitMatrix, "PNG", baos);
+        return baos.toByteArray();
     }
 
     public static void close() {
         em.close();
         emf.close();
-    }
-}
+    }}

@@ -1,5 +1,6 @@
 package uz.pdp.gym.servlet;
 
+import org.hibernate.Session;
 import uz.pdp.gym.config.Admin;
 import uz.pdp.gym.config.Roles;
 import uz.pdp.gym.repo.AdminRepo;
@@ -24,6 +25,7 @@ public class AddAdminServlet extends HttpServlet {
         admin.setLastname(lastname);
         admin.setPassword(password);
         admin.setRoles(Roles.ADMIN);
+
 
         AdminRepo adminRepo = new AdminRepo();
         adminRepo.save(admin);

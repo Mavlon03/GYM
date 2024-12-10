@@ -1,7 +1,7 @@
 package uz.pdp.gym.servlet;
 
 import jakarta.persistence.EntityManager;
-import uz.pdp.gym.config.Subscriber;
+import uz.pdp.gym.config.TgSubscribe;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -23,8 +23,8 @@ public class RemoveSubscriberServlet extends HttpServlet {
             String id = req.getParameter("id");
             int subscriberId = Integer.parseInt(id);
             entityManager.getTransaction().begin();
-            Subscriber subscriber = entityManager.find(Subscriber.class, subscriberId);
-            entityManager.remove(subscriber);
+            TgSubscribe tgSubscribe = entityManager.find(TgSubscribe.class, subscriberId);
+            entityManager.remove(tgSubscribe);
             entityManager.getTransaction().commit();
             resp.sendRedirect("/add.jsp");
         }

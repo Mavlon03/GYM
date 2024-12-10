@@ -24,7 +24,7 @@ public class BaseRepo<T> {
         }
     }
 
-    public  List<T> findAll() {
+    public List<T> findAll() {
         try (EntityManager entityManager = EMF.createEntityManager()) {
             return entityManager.createQuery("from " + persistenceClass.getSimpleName(), persistenceClass)
                     .getResultList();

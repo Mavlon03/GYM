@@ -4,28 +4,33 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.Query;
 import uz.pdp.gym.abs.BaseRepo;
-import uz.pdp.gym.config.Subscriber;
+import uz.pdp.gym.bot.DB;
+import uz.pdp.gym.config.TgSubscribe;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static uz.pdp.gym.MyListener.EMF;
 
-public class SubscriberRepo extends BaseRepo<Subscriber> {
+public class SubscriberRepo extends BaseRepo<TgSubscribe> {
 
 
     public SubscriberRepo() {
-        super(Subscriber.class);
+        super(TgSubscribe.class);
     }
 
 
 
-    public static List<Subscriber> getSubscriberList(int page1, String search) {
+    public static List<TgSubscribe> getSubscriberList(int page1, String search) {
         try (EntityManager entityManager = EMF.createEntityManager()) {
             page1--;
             Query query = entityManager.createQuery(
-                            "select s from Subscriber s WHERE LOWER(s.firstname) LIKE LOWER(CONCAT('%', :search, '%'))",
-                            Subscriber.class)
+                            "select s from TgSubscribe s WHERE LOWER(s.firstname) LIKE LOWER(CONCAT('%', :search, '%'))",
+                            TgSubscribe.class)
                     .setParameter("search", search)
                     .setFirstResult(page1 * 5)
                     .setMaxResults(5);
@@ -41,7 +46,7 @@ public class SubscriberRepo extends BaseRepo<Subscriber> {
         try (
                 EntityManager entityManager = EMF.createEntityManager()
         ) {
-            Query query = entityManager.createNativeQuery("select count(*) from subscriber where firstname ilike '%' || :search || '%'", Long.class)
+            Query query = entityManager.createNativeQuery("select count(*) from TgSubscribe where firstname ilike '%' || :search || '%'", Long.class)
                     .setParameter("search", search);
             return (Long) query.getSingleResult();
         }
@@ -54,13 +59,13 @@ public class SubscriberRepo extends BaseRepo<Subscriber> {
         try {
             transaction.begin();
 
-            List<Subscriber> subscribers = entityManager.createQuery("select s from Subscriber s", Subscriber.class)
+            List<TgSubscribe> tgSubscribes = entityManager.createQuery("select s from TgSubscribe s", TgSubscribe.class)
                     .getResultList();
 
-            for (Subscriber subscriber : subscribers) {
-                if (subscriber.getSubscriptionEnd() != null && subscriber.getSubscriptionEnd().isBefore(LocalDateTime.now())) {
-                    subscriber.setStatus(false);
-                    entityManager.merge(subscriber);
+            for (TgSubscribe tgSubscribe : tgSubscribes) {
+                if (tgSubscribe.getSubscriptionEnd() != null && tgSubscribe.getSubscriptionEnd().isBefore(LocalDateTime.now())) {
+                    tgSubscribe.setStatus(false);
+                    entityManager.merge(tgSubscribe);
                 }
             }
 
@@ -75,22 +80,30 @@ public class SubscriberRepo extends BaseRepo<Subscriber> {
             entityManager.close();
         }
     }
-    List<Subscriber> subscribers = findAll();
-    public Subscriber findById(Integer subscriberId) {
-        for (Subscriber subscriber : subscribers) {
-            if (subscriber.getId().equals(subscriberId)) {
-                return subscriber;
-            }
-        }
-        return null;
-    }
 
-    public Subscriber findByPhone(String phone) {
-        for (Subscriber subscriber : subscribers) {
-            if (subscriber.getPhone().equals(phone)) {
-                return subscriber;
+
+    public static TgSubscribe getSubscriberByPhone(String phone) {
+        System.out.println(phone);
+        String query = "SELECT * FROM TgSubscribe WHERE phone = ?";
+        try (Connection connection = DB.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+
+            statement.setString(1, phone);
+
+            ResultSet resultSet = statement.executeQuery();
+
+            // Agar subscriber topilsa
+            if (resultSet.next()) {
+                TgSubscribe tgSubscribe = new TgSubscribe();
+                tgSubscribe.setPhone(resultSet.getString("phone"));
+
+                return tgSubscribe;
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
+        // Agar telefon raqami bo'yicha subscriber topilmasa, null qaytariladi
         return null;
     }
 }
+

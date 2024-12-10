@@ -1,5 +1,5 @@
 <%@ page import="java.util.List" %>
-<%@ page import="uz.pdp.gym.config.Subscriber" %>
+<%@ page import="uz.pdp.gym.config.TgSubscribe" %>
 <%@ page import="uz.pdp.gym.repo.SubscriberRepo" %><%--
   Created by IntelliJ IDEA.
   User: user
@@ -19,14 +19,15 @@
 <a class="btn btn-black" href="/addAdmin.jsp">+ADMIN</a>
 <%@ page import="java.util.Base64" %>
 <%@ page import="java.util.List" %>
-<%@ page import="uz.pdp.gym.config.Subscriber" %>
+<%@ page import="uz.pdp.gym.config.TgSubscribe" %>
 <%@ page import="uz.pdp.gym.repo.SubscriberRepo" %>
 <%@ page import="java.util.Objects" %>
+<%@ page import="uz.pdp.gym.config.TgSubscribe" %>
 
 <%
     String search = Objects.requireNonNullElse(request.getParameter("search"), "");
     int page1 = Integer.parseInt(Objects.requireNonNullElse(request.getParameter("page"), "1"));
-    List<Subscriber> subscribers = SubscriberRepo.getSubscriberList(page1, search);
+    List<TgSubscribe> tgSubscribes = SubscriberRepo.getSubscriberList(page1, search);
 %>
 
 <div class="w-50 p-4">
@@ -50,7 +51,8 @@
         <td>Status</td>
         <td>Phone Number</td>
         <td>Created time</td>
-        <td>Subscription time</td>
+        <td>Subscription end time</td>
+        <td>Telegram chatId </td>
         <td>Daily</td>
         <td>Monthly</td>
         <td>Yearly</td>
@@ -59,29 +61,31 @@
     </thead>
     <tbody>
     <%
-        for (Subscriber subscriber : subscribers) {
-            String base64Image = Base64.getEncoder().encodeToString(subscriber.getPhoto());
+        for (TgSubscribe tgSubscribe : tgSubscribes) {
+            String base64Image = Base64.getEncoder().encodeToString(tgSubscribe.getPhoto());
     %>
     <tr>
-        <td><%= subscriber.getId() %></td>
+        <td><%= tgSubscribe.getId() %></td>
         <td>
             <img src="data:image/jpeg;base64,<%= base64Image %>" alt="Subscriber Photo" width="100" height="100" />
         </td>
-        <td><%= subscriber.getFirstname() %></td>
-        <td><%= subscriber.getLastname() %></td>
-        <td><%= subscriber.getAge() %></td>
-        <td><%= subscriber.getRoles() %></td>
-        <td><%= subscriber.getStatus() ? "On✅" : "Off❌" %></td>
-        <td><%= subscriber.getPhone() %></td>
-        <td><%=subscriber.getCreatedAt() %></td>
-        <td><%= subscriber.getSubscriptionEnd() %></td>
+        <td><%= tgSubscribe.getFirstname() %></td>
+        <td><%= tgSubscribe.getLastname() %></td>
+        <td><%= tgSubscribe.getAge() %></td>
+        <td><%= tgSubscribe.getRoles() %></td>
+        <td><%= tgSubscribe.getStatus() ? "On✅" : "Off❌" %></td>
+        <td><%= tgSubscribe.getPhone() %></td>
+        <td><%=tgSubscribe.getCreatedAt() %></td>
+        <td><%= tgSubscribe.getSubscriptionEnd() %></td>
+        <td><%= tgSubscribe.getChat_id() %></td>
 
-        <td><%= subscriber.getTrainingTime() != null && subscriber.getTrainingTime().getKunlik() != null ? subscriber.getTrainingTime().getKunlik() : "❌ " %></td>
-        <td><%= subscriber.getTrainingTime() != null && subscriber.getTrainingTime().getOylik() != null ? subscriber.getTrainingTime().getOylik() : "❌ " %></td>
-        <td><%= subscriber.getTrainingTime() != null && subscriber.getTrainingTime().getYillik() != null ? subscriber.getTrainingTime().getYillik() : "❌             " %></td>
+
+        <td><%= tgSubscribe.getTrainingTime() != null && tgSubscribe.getTrainingTime().getKunlik() != null ? tgSubscribe.getTrainingTime().getKunlik() : "❌ " %></td>
+        <td><%= tgSubscribe.getTrainingTime() != null && tgSubscribe.getTrainingTime().getOylik() != null ? tgSubscribe.getTrainingTime().getOylik() : "❌ " %></td>
+        <td><%= tgSubscribe.getTrainingTime() != null && tgSubscribe.getTrainingTime().getYillik() != null ? tgSubscribe.getTrainingTime().getYillik() : "❌             " %></td>
         <td>
             <form action="/remove" method="post">
-                <input type="hidden" value="<%=subscriber.getId()%>" name="id">
+                <input type="hidden" value="<%=tgSubscribe.getId()%>" name="id">
                 <button class="btn btn-danger">Delete</button>
             </form>
         </td>
