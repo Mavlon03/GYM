@@ -20,4 +20,9 @@ public class Admin extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private Roles roles ;
 
+    public Admin(String firstname, String lastname, String password) {
+        this.firstname = firstname;
+        this.lastname = lastname;
+        this.password = password;
+    }
 }

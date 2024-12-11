@@ -29,7 +29,7 @@ public class SubscriberRepo extends BaseRepo<TgSubscribe> {
         try (EntityManager entityManager = EMF.createEntityManager()) {
             page1--;
             Query query = entityManager.createQuery(
-                            "select s from TgSubscribe s WHERE LOWER(s.firstname) LIKE LOWER(CONCAT('%', :search, '%'))",
+                            "select s from TgSubscribe s where lower(s.firstname) LIKE lower(concat('%', :search, '%'))",
                             TgSubscribe.class)
                     .setParameter("search", search)
                     .setFirstResult(page1 * 5)
@@ -84,7 +84,7 @@ public class SubscriberRepo extends BaseRepo<TgSubscribe> {
 
     public static TgSubscribe getSubscriberByPhone(String phone) {
         System.out.println(phone);
-        String query = "SELECT * FROM TgSubscribe WHERE phone = ?";
+        String query = "select * from TgSubscribe where phone = ?";
         try (Connection connection = DB.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
 
@@ -103,6 +103,27 @@ public class SubscriberRepo extends BaseRepo<TgSubscribe> {
             e.printStackTrace();
         }
         // Agar telefon raqami bo'yicha subscriber topilmasa, null qaytariladi
+        return null;
+    }
+
+    public TgSubscribe findByChatId(Long chatId) {
+        String query = "select * from TgSubscribe where chat_id = ?";
+        try (Connection connection = DB.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+
+            statement.setLong(1, chatId);
+
+            ResultSet resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                TgSubscribe tgSubscribe = new TgSubscribe();
+                tgSubscribe.setChat_id(resultSet.getLong("chat_id"));
+
+                return tgSubscribe;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
         return null;
     }
 }

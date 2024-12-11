@@ -43,17 +43,16 @@ public class BotController {
     private void handleCallbackQuery(CallbackQuery callbackQuery) {
         String callbackData = callbackQuery.data();
         Long chatId = callbackQuery.message().chat().id();
-
+        TgSubscribe tgSubscribe = getOrCreateUser(chatId);
         if ("SHOW_HISTORY".equals(callbackData)) {
-            TgSubscribe tgSubscribe = getOrCreateUser(chatId);
-            System.out.println("SHOW");
-            BotService.sendUserHistory(tgSubscribe, chatId); // Tarixni yuborish funksiyasi
+            System.out.println(tgSubscribe.getId());
+            System.out.println("SHOW HISTORY ");
+
         } else if ("QR_CODE".equals(callbackData)) {
-            TgSubscribe tgSubscribe = getOrCreateUser(chatId);
             System.out.println("QR code");
-            BotService.sendQRCodeForUser(tgSubscribe, chatId); // QR kodni yuborish funksiyasi
+            BotService.sendQRCodeForUser(tgSubscribe, chatId);
         } else {
-            telegramBot.execute(new SendMessage(chatId, "Noto'g'ri buyruq!"));
+            telegramBot.execute(new SendMessage(chatId, "Incorrect order!"));
         }
     }
 

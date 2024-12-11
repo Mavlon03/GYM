@@ -48,6 +48,20 @@ public class TgSubscribe extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private TgState tgState = TgState.START;
 
+    public TgSubscribe(String firstname, String lastname, Integer age, String phone, Boolean status, byte[] qr_code, Long chat_id, Roles roles, byte[] photo, TrainingTime trainingTime, LocalDateTime createdAt, LocalDateTime subscriptionEnd) {
+        this.firstname = firstname;
+        this.lastname = lastname;
+        this.age = age;
+        this.phone = phone;
+        this.status = status;
+        this.qr_code = qr_code;
+        this.chat_id = chat_id;
+        this.roles = roles;
+        this.photo = photo;
+        this.trainingTime = trainingTime;
+        this.createdAt = createdAt;
+        this.subscriptionEnd = subscriptionEnd;
+    }
 
     public void updateStatus() {
         if (this.subscriptionEnd != null) {

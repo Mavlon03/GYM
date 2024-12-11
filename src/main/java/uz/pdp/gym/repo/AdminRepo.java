@@ -15,7 +15,7 @@ public class AdminRepo extends BaseRepo<Admin> {
     }
 
     public static boolean isAdminValid(String name, String password) throws SQLException {
-        String query = "SELECT COUNT(*) FROM admin WHERE name = ? AND password = ?";
+        String query = "select count(*) from admin where name = ? and password = ?";
         try (Connection connection = DB.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setString(1, name);

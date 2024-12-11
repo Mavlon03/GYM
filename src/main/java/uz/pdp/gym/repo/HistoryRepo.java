@@ -15,7 +15,7 @@ public class HistoryRepo extends BaseRepo<History> {
     }
 
     public static void addScanHistory(int subscriberId, int adminId) throws SQLException {
-        String query = "INSERT INTO history (subscriber_id, admin_id) VALUES (?, ?)";
+        String query = "inser into history (subscriber_id, admin_id) values (?, ?)";
         try (Connection connection = DB.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setInt(1, subscriberId);
@@ -23,7 +23,5 @@ public class HistoryRepo extends BaseRepo<History> {
             statement.executeUpdate();
         }
     }
-    public static void saveHistory(History history) {
 
-    }
 }

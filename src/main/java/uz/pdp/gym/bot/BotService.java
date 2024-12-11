@@ -14,6 +14,7 @@ import com.pengrad.telegrambot.request.SendPhoto;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
+import lombok.SneakyThrows;
 import uz.pdp.gym.config.Admin;
 import uz.pdp.gym.config.History;
 import uz.pdp.gym.config.TgSubscribe;
@@ -26,16 +27,43 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.Scanner;
+import java.util.List;
 
 public class BotService {
 
     public static TelegramBot telegramBot = new TelegramBot("7449264666:AAF8u0tmTIVTKcQDET8G-9joMuoI2G6AIac");
-    private static final TgUserRepo tgUserRepo = new TgUserRepo();
-    private static  final SubscriberRepo subscriber = new SubscriberRepo();
-    private static final EntityManagerFactory emf = Persistence.createEntityManagerFactory("default");
-    private static final EntityManager em = emf.createEntityManager();
+
+    @SneakyThrows
+    private  static List<Admin> admins() {
+        List<Admin> adminList = new ArrayList<>();
+
+        Connection connection = DB.getConnection();
+
+        PreparedStatement preparedStatement = connection.prepareStatement(
+                "select a.firstname, a.lastname, a.password from admin as a"
+        );
+
+        ResultSet resultSet = preparedStatement.executeQuery();
+
+        while (resultSet.next()) {
+            String firstname = resultSet.getString("firstname");
+            String lastname = resultSet.getString("lastname");
+            String password = resultSet.getString("password");
+
+            Admin admin = new Admin(firstname, lastname, password);
+            adminList.add(admin);
+        }
+
+        // Closing resources
+        resultSet.close();
+        preparedStatement.close();
+        connection.close();
+
+        return adminList;
+    }
+
     public static TgSubscribe getOrCreateUser(Long chatId) {
         TgSubscribe user = getUserFromDB(chatId);
 
@@ -48,7 +76,7 @@ public class BotService {
     }
 
     private static TgSubscribe getUserFromDB(Long chatId) {
-        String query = "SELECT * FROM TgSubscribe WHERE chat_id = ?";
+        String query = "select * from TgSubscribe where chat_id = ?";
         try (Connection connection = DB.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setLong(1, chatId);
@@ -66,12 +94,12 @@ public class BotService {
     }
 
     private static void saveUserToDB(TgSubscribe user) {
-        String query = "INSERT INTO TgSubscribe (chat_id, phone) VALUES (?, ?)";
+        String query = "INSERT INTO TgSubscribe (chat_id, phone) values (?, ?)";
 
         try (Connection connection = DB.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setLong(1, user.getChat_id());
-            statement.setString(2, user.getPhone());  // Telefon raqamini qo'shish
+            statement.setString(2, user.getPhone());
             statement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -127,9 +155,9 @@ public class BotService {
         String query;
 
         if (userPhoneExists(user.getPhone())) {
-            query = "UPDATE TgSubscribe SET chat_id = ? WHERE phone = ?";
+            query = "update TgSubscribe set chat_id = ? where phone = ?";
         } else {
-            query = "INSERT INTO TgSubscribe (chat_id, phone) VALUES (?, ?)";
+            query = "insert into TgSubscribe (chat_id, phone) values (?, ?)";
         }
 
         try (Connection connection = DB.getConnection();
@@ -144,7 +172,7 @@ public class BotService {
     }
 
     private static boolean userPhoneExists(String phone) {
-        String checkQuery = "SELECT COUNT(*) FROM TgSubscribe WHERE phone = ?";
+        String checkQuery = "select count(*) from TgSubscribe where phone = ?";
         try (Connection connection = DB.getConnection();
              PreparedStatement statement = connection.prepareStatement(checkQuery)) {
             statement.setString(1, phone);
@@ -159,62 +187,12 @@ public class BotService {
     }
 
 
-
-
-
-
-
-
-
-    public static void sendUserHistory(TgSubscribe tgSubscribe, Long adminId) {
-        Admin admin = loginAdmin();
-        if (admin == null || !admin.getId().equals(adminId)) {
-            System.out.println("Adminlik huquqi tasdiqlanmadi yoki noto‘g‘ri ma'lumot kiritildi.");
-            System.out.println("Foydalanuvchi ma'lumotlari:");
-            System.out.println("Ism: " + tgSubscribe.getFirstname());
-            System.out.println("Familya: " + tgSubscribe.getLastname());
-            return;
-        }
-
-        History history = new History();
-        history.setTgSubscribe(tgSubscribe);
-        history.setAdmin(admin);
-        history.setScanned_At(LocalDateTime.now());
-
-        try {
-            em.getTransaction().begin();
-            em.persist(history);
-            em.getTransaction().commit();
-            System.out.println("Tarix muvaffaqiyatli qo‘shildi.");
-        } catch (Exception e) {
-            e.printStackTrace();
-            em.getTransaction().rollback();
-        }
-    }
-
-    private static Admin loginAdmin() {
-        Scanner scanner = new Scanner(System.in);
-        System.out.print("Admin ismini kiriting: ");
-        String firstname = scanner.nextLine();
-        System.out.print("Parolni kiriting: ");
-        String password = scanner.nextLine();
-
-        try {
-            String query = "SELECT a FROM Admin a WHERE a.firstname = :firstname AND a.password = :password";
-            return em.createQuery(query, Admin.class)
-                    .setParameter("firstname", firstname)
-                    .setParameter("password", password)
-                    .getSingleResult();
-        } catch (Exception e) {
-            System.out.println("Login ma'lumotlari noto‘g‘ri yoki admin topilmadi.");
-            return null;
-        }
-    }
-
-
     public static void sendQRCodeForUser(TgSubscribe tgSubscribe, Long chatId) {
         try {
-            String qrData = "http:192.168.35.183/user:" + tgSubscribe.getChat_id();  // QR kodda foydalanuvchi haqida ma'lumot saqlanadi
+            System.out.println(tgSubscribe.getChat_id());
+            System.out.println("CHAT id:" + chatId);
+
+            String qrData = "https://192.168.35.183/scan/qrcode?chatId=" + tgSubscribe.getChat_id();
             byte[] qrImage = generateQRCode(qrData);
 
             SendPhoto sendPhoto = new SendPhoto(tgSubscribe.getChat_id(), qrImage);
@@ -223,6 +201,8 @@ public class BotService {
             e.printStackTrace();
         }
     }
+
+
     private static byte[] generateQRCode(String data) throws WriterException, IOException {
         Hashtable<EncodeHintType, Object> hints = new Hashtable<>();
         hints.put(EncodeHintType.MARGIN, 1);
@@ -235,7 +215,16 @@ public class BotService {
         return baos.toByteArray();
     }
 
-    public static void close() {
-        em.close();
-        emf.close();
-    }}
+
+    public static void sendQRCodeScannedNotification(TgSubscribe user, Admin admin) {
+        SendMessage userMessage = new SendMessage(user.getChat_id(),
+                "Sizning kelishingiz tasdiqlandi.\nAdmin: " + admin.getFirstname() + " " + admin.getLastname() +
+                        "\nKelish vaqti: " + LocalDateTime.now());
+        telegramBot.execute(userMessage);
+
+        SendMessage adminMessage = new SendMessage(admin.getRoles(),
+                "Foydalanuvchi: " + user.getFirstname() + " " + user.getLastname() +
+                        "\nKelish vaqti: " + LocalDateTime.now());
+        telegramBot.execute(adminMessage);
+    }
+}

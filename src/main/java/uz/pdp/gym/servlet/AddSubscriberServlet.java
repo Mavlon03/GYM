@@ -20,29 +20,22 @@ import java.time.LocalDateTime;
 public class AddSubscriberServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        // Formdan ma'lumotlarni olish
         String firstname = req.getParameter("firstname");
         String lastname = req.getParameter("lastname");
         String age = req.getParameter("age");
         String phone = req.getParameter("phone");
         String statusParam = req.getParameter("status");
         String trainingTimeParam = req.getParameter("trainingTime");
-
-        // Faylni byte[] sifatida olish
         Part photoPart = req.getPart("photo");
         byte[] photoBytes = photoPart.getInputStream().readAllBytes();
 
-        // Statusni qayta ishlash (true yoki false)
         boolean status = Boolean.parseBoolean(statusParam);
-
-        // TrainingTime yaratish
         TrainingTime trainingTime = new TrainingTime(
                 "kunlik".equals(trainingTimeParam) ? "kunlik" : null,
                 "oylik".equals(trainingTimeParam) ? "oylik" : null,
                 "yillik".equals(trainingTimeParam) ? "yillik" : null
         );
 
-        // Abonementning tugash vaqtini hisoblash
         LocalDateTime subscriptionEnd = null;
         if ("oylik".equals(trainingTimeParam)) {
             subscriptionEnd = LocalDateTime.now().plusMonths(1);
@@ -52,7 +45,6 @@ public class AddSubscriberServlet extends HttpServlet {
             subscriptionEnd = LocalDateTime.now().plusDays(1);
         }
 
-        // Subscriber obyektini yaratish
         TgSubscribe tgSubscribe = new TgSubscribe();
         tgSubscribe.setFirstname(firstname);
         tgSubscribe.setLastname(lastname);
@@ -65,14 +57,11 @@ public class AddSubscriberServlet extends HttpServlet {
         tgSubscribe.setCreatedAt(LocalDateTime.now());
         tgSubscribe.setSubscriptionEnd(subscriptionEnd);
 
-        // Statusni yangilash
         tgSubscribe.updateStatus();
 
-        // Ma'lumotni bazaga saqlash
         SubscriberRepo subscriberRepo = new SubscriberRepo();
         subscriberRepo.save(tgSubscribe);
 
-        // Muvaffaqiyatli saqlangandan so'ng foydalanuvchini boshqa sahifaga yo'naltirish
         resp.sendRedirect("/add.jsp");
     }
 }
