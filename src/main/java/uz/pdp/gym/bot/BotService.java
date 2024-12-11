@@ -11,14 +11,8 @@ import com.pengrad.telegrambot.model.Contact;
 import com.pengrad.telegrambot.model.request.*;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.request.SendPhoto;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
-import jakarta.persistence.Persistence;
 import lombok.SneakyThrows;
-import uz.pdp.gym.config.Admin;
-import uz.pdp.gym.config.History;
 import uz.pdp.gym.config.TgSubscribe;
-import uz.pdp.gym.repo.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -35,34 +29,7 @@ public class BotService {
 
     public static TelegramBot telegramBot = new TelegramBot("7449264666:AAF8u0tmTIVTKcQDET8G-9joMuoI2G6AIac");
 
-    @SneakyThrows
-    private  static List<Admin> admins() {
-        List<Admin> adminList = new ArrayList<>();
 
-        Connection connection = DB.getConnection();
-
-        PreparedStatement preparedStatement = connection.prepareStatement(
-                "select a.firstname, a.lastname, a.password from admin as a"
-        );
-
-        ResultSet resultSet = preparedStatement.executeQuery();
-
-        while (resultSet.next()) {
-            String firstname = resultSet.getString("firstname");
-            String lastname = resultSet.getString("lastname");
-            String password = resultSet.getString("password");
-
-            Admin admin = new Admin(firstname, lastname, password);
-            adminList.add(admin);
-        }
-
-        // Closing resources
-        resultSet.close();
-        preparedStatement.close();
-        connection.close();
-
-        return adminList;
-    }
 
     public static TgSubscribe getOrCreateUser(Long chatId) {
         TgSubscribe user = getUserFromDB(chatId);
@@ -223,17 +190,7 @@ public class BotService {
     }
 
 
-    public static void sendQRCodeScannedNotification(TgSubscribe user, Admin admin) {
-        SendMessage userMessage = new SendMessage(user.getChat_id(),
-                "Sizning kelishingiz tasdiqlandi.\nAdmin: " + admin.getFirstname() + " " + admin.getLastname() +
-                        "\nKelish vaqti: " + LocalDateTime.now());
-        telegramBot.execute(userMessage);
 
-        SendMessage adminMessage = new SendMessage(admin.getRoles(),
-                "Foydalanuvchi: " + user.getFirstname() + " " + user.getLastname() +
-                        "\nKelish vaqti: " + LocalDateTime.now());
-        telegramBot.execute(adminMessage);
-    }
 
     public static void sendHistoryForUser(TgSubscribe tgSubscribe, Long chatId) {
         SendMessage sendMessage = new SendMessage(tgSubscribe.getChat_id(),

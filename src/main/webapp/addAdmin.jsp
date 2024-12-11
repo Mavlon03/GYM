@@ -1,80 +1,56 @@
-<%@ page import="uz.pdp.gym.repo.AdminRepo" %>
-<%@ page import="uz.pdp.gym.config.Admin" %>
 <%@ page import="java.util.List" %>
+<%@ page import="uz.pdp.gym.repo.SubscriberRepo" %>
+<%@ page import="uz.pdp.gym.config.TgSubscribe" %>
+<%@ page import="uz.pdp.gym.config.Roles" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
 
-<div class="container">
-    <h2 class="mt-5">Add Admin</h2>
-    <form action="/add/admin" method="post">
-        <!-- First Name -->
-        <div class="mb-3">
-            <input type="text" class="form-control" name="firstname"laceholder="Enter firstname" required>
-        </div>
+<div class="container mt-5">
+    <h2>Set Subscriber as Admin</h2>
 
-        <!-- Last Name -->
-        <div class="mb-3">
-            <input type="text" class="form-control" name="lastname" placeholder="Enter lastname" required>
-        </div>
+    <table class="table table-bordered mt-4">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Firstname</th>
+            <th>Lastname</th>
+            <th>Chat ID</th>
+            <th>Role</th>
+            <th>Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        <%
+            SubscriberRepo subscriberRepo = new SubscriberRepo();
+            List<TgSubscribe> subscribers = subscriberRepo.findAll(); // Barcha subscriberlarni olish
+            for (TgSubscribe subscriber : subscribers) {
+        %>
+        <tr>
+            <td><%= subscriber.getId() %></td>
+            <td><%= subscriber.getFirstname() %></td>
+            <td><%= subscriber.getLastname() %></td>
+            <td><%= subscriber.getChat_id() %></td>
+            <td><%= subscriber.getRoles() %></td>
+            <td>
+                <form action="/set/admin" method="post">
+                    <input type="hidden" name="id" value="<%= subscriber.getId() %>">
+                    <button class="btn btn-success" <%= Roles.ADMIN.equals(subscriber.getRoles()) ? "disabled" : "" %>>
+                        Set as Admin
+                    </button>
+                </form>
+            </td>
+        </tr>
+        <% } %>
+        </tbody>
+    </table>
 
-        <!-- Password -->
-        <div class="mb-3">
-            <input type="password" class="form-control" name="password" placeholder="Enter password" required>
-        </div>
-
-        <!-- Add Button -->
-        <div class="form-button">
-            <button type="submit" class="btn btn-success">Add Admin</button>
-        </div>
-    </form>
 </div>
-
-<%
-    AdminRepo adminRepo = new AdminRepo();
-    List<Admin> admins = adminRepo.findAll();
-%>
-<a href="/add.jsp">Back</a>
-<table class="table mt-3">
-    <thead>
-    <tr>
-        <td>Id</td>
-        <td>Firstname</td>
-        <td>Lastname</td>
-        <td>password</td>
-        <td>Role</td>
-        <td>Action</td>
-
-    </tr>
-    </thead>
-    <tbody>
-    <%
-        for (Admin admin : admins) {
-    %>
-    <tr>
-        <td><%= admin.getId() %></td>
-        <td><%= admin.getFirstname() %></td>
-        <td><%= admin.getLastname() %></td>
-        <td><%= admin.getPassword() %></td>
-        <td><%= admin.getRoles() %></td>
-        <td>
-            <form action="/remove/admin" method="post">
-                <input type="hidden" value="<%=admin.getId()%>" name="id">
-                <button class="btn btn-danger">Delete</button>
-            </form>
-        </td>
-    </tr>
-    <%
-        }
-    %>
-    </tbody>
-</table>
 
 </body>
 </html>

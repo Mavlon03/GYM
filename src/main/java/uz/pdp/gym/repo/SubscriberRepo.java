@@ -23,7 +23,23 @@ public class SubscriberRepo extends BaseRepo<TgSubscribe> {
         super(TgSubscribe.class);
     }
 
+    public TgSubscribe findById(int id) {
+        try (EntityManager entityManager = EMF.createEntityManager()) {
+            return entityManager.find(TgSubscribe.class, id);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
+    public void update(TgSubscribe subscriber) {
+        try (EntityManager entityManager = EMF.createEntityManager()) {
+            entityManager.getTransaction().begin();
+            entityManager.merge(subscriber); // Ma‘lumotlarni yangilash
+            entityManager.getTransaction().commit();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public static List<TgSubscribe> getSubscriberList(int page1, String search) {
         try (EntityManager entityManager = EMF.createEntityManager()) {
