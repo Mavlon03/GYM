@@ -24,7 +24,7 @@ public class AdminLoginServlet extends HttpServlet {
         if (admin != null) {
             HttpSession session = req.getSession(true);
             session.setAttribute("admin", admin);
-            resp.sendRedirect("scanQRCode.jsp");
+            resp.sendRedirect("/add.jsp");
         } else {
             resp.setContentType("text/html");
             resp.getWriter().println("<html><body><h3>Login yoki parol noto'g'ri!</h3></body></html>");

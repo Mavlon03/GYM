@@ -94,13 +94,20 @@ public class BotService {
     }
 
     private static void saveUserToDB(TgSubscribe user) {
-        String query = "INSERT INTO TgSubscribe (chat_id, phone) values (?, ?)";
+        String query;
+
+        if (userPhoneExists(user.getPhone())) {
+            query = "update TgSubscribe set chat_id = ? where phone = ?";
+        } else {
+            query = "insert into TgSubscribe (chat_id, phone) values (?, ?)";
+        }
 
         try (Connection connection = DB.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setLong(1, user.getChat_id());
             statement.setString(2, user.getPhone());
             statement.executeUpdate();
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -178,7 +185,7 @@ public class BotService {
             statement.setString(1, phone);
             ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
-                return resultSet.getInt(1) > 0; // Agar bitta yoki undan ko'p natija bo'lsa, telefon mavjud
+                return resultSet.getInt(1) > 0;
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -192,7 +199,7 @@ public class BotService {
             System.out.println(tgSubscribe.getChat_id());
             System.out.println("CHAT id:" + chatId);
 
-            String qrData = "https://192.168.35.183/scan/qrcode?chatId=" + tgSubscribe.getChat_id();
+            String qrData = "http://192.168.35.183:8080/scan/qrcode?chatId=" + tgSubscribe.getChat_id();
             byte[] qrImage = generateQRCode(qrData);
 
             SendPhoto sendPhoto = new SendPhoto(tgSubscribe.getChat_id(), qrImage);
@@ -226,5 +233,13 @@ public class BotService {
                 "Foydalanuvchi: " + user.getFirstname() + " " + user.getLastname() +
                         "\nKelish vaqti: " + LocalDateTime.now());
         telegramBot.execute(adminMessage);
+    }
+
+    public static void sendHistoryForUser(TgSubscribe tgSubscribe, Long chatId) {
+        SendMessage sendMessage = new SendMessage(tgSubscribe.getChat_id(),
+                """
+                        History page yozilmoqda... %s %d
+                        """.formatted(tgSubscribe.getFirstname(), tgSubscribe.getChat_id()));
+        telegramBot.execute(sendMessage);
     }
 }

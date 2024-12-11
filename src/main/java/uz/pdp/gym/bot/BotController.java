@@ -47,7 +47,7 @@ public class BotController {
         if ("SHOW_HISTORY".equals(callbackData)) {
             System.out.println(tgSubscribe.getId());
             System.out.println("SHOW HISTORY ");
-
+            BotService.sendHistoryForUser(tgSubscribe, chatId);
         } else if ("QR_CODE".equals(callbackData)) {
             System.out.println("QR code");
             BotService.sendQRCodeForUser(tgSubscribe, chatId);
