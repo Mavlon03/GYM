@@ -21,6 +21,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -28,8 +29,6 @@ import java.util.List;
 public class BotService {
 
     public static TelegramBot telegramBot = new TelegramBot("7449264666:AAF8u0tmTIVTKcQDET8G-9joMuoI2G6AIac");
-
-
 
     public static TgSubscribe getOrCreateUser(Long chatId) {
         TgSubscribe user = getUserFromDB(chatId);
@@ -52,6 +51,7 @@ public class BotService {
             if (resultSet.next()) {
                 TgSubscribe user = new TgSubscribe();
                 user.setChat_id(resultSet.getLong("chat_id"));
+                user.setPhone(resultSet.getString("phone"));
                 return user;
             }
         } catch (SQLException e) {
@@ -92,28 +92,33 @@ public class BotService {
         telegramBot.execute(sendMessage);
         tgSubscribe.setTgState(TgState.MENU);
     }
-    public static void acceptContactAndChooseMenu(TgSubscribe tgSubscribe, Contact contact) {
+
+    public static void acceptContactAndValidate(TgSubscribe tgSubscribe, Contact contact) {
         if (contact != null && contact.phoneNumber() != null) {
             String phone = PhoneNumber.fix(contact.phoneNumber());
-            tgSubscribe.setPhone(phone);
-            saveOrUpdateUser(tgSubscribe);
 
-            SendMessage successMessage = new SendMessage(tgSubscribe.getChat_id(), "Kontaktingiz qabul qilindi.");
-            successMessage.replyMarkup(new ReplyKeyboardRemove());
-            telegramBot.execute(successMessage);
+            // Telefon raqamini tekshirish
+            if (userPhoneExists(phone)) {
+                tgSubscribe.setPhone(phone);
+                saveOrUpdateUser(tgSubscribe);
 
-            SendMessage menuMessage = new SendMessage(tgSubscribe.getChat_id(), "Menuni tanlang:");
+                SendMessage successMessage = new SendMessage(tgSubscribe.getChat_id(), "Kontaktingiz qabul qilindi va yangilandi.");
+                successMessage.replyMarkup(new ReplyKeyboardRemove());
+                telegramBot.execute(successMessage);
 
-            menuMessage.replyMarkup(generateInlineMenu());
-            telegramBot.execute(menuMessage);
-            tgSubscribe.setTgState(TgState.CHOOSE);
-
+                SendMessage menuMessage = new SendMessage(tgSubscribe.getChat_id(), "Menuni tanlang:");
+                menuMessage.replyMarkup(generateInlineMenu());
+                telegramBot.execute(menuMessage);
+                tgSubscribe.setTgState(TgState.CHOOSE);
+            } else {
+                SendMessage errorMessage = new SendMessage(tgSubscribe.getChat_id(), "Telefon raqam noto'g'ri. Iltimos, qayta tekshirib yuboring.");
+                telegramBot.execute(errorMessage);
+            }
         } else {
             SendMessage errorMessage = new SendMessage(tgSubscribe.getChat_id(), "Iltimos, telefon raqamingizni qayta yuboring.");
             telegramBot.execute(errorMessage);
         }
     }
-
 
     private static InlineKeyboardMarkup generateInlineMenu() {
         InlineKeyboardButton showHistoryButton = new InlineKeyboardButton("Show History").callbackData("SHOW_HISTORY");
@@ -160,13 +165,9 @@ public class BotService {
         return false;
     }
 
-
     public static void sendQRCodeForUser(TgSubscribe tgSubscribe, Long chatId) {
         try {
-            System.out.println(tgSubscribe.getChat_id());
-            System.out.println("CHAT id:" + chatId);
-
-            String qrData = "http://192.168.35.183:8080/scan/qrcode?chatId=" + tgSubscribe.getChat_id();
+            String qrData = "http://192.168.53.183:8080/scan/qrcode?chatId=" + tgSubscribe.getChat_id();
             byte[] qrImage = generateQRCode(qrData);
 
             SendPhoto sendPhoto = new SendPhoto(tgSubscribe.getChat_id(), qrImage);
@@ -175,7 +176,6 @@ public class BotService {
             e.printStackTrace();
         }
     }
-
 
     private static byte[] generateQRCode(String data) throws WriterException, IOException {
         Hashtable<EncodeHintType, Object> hints = new Hashtable<>();
@@ -189,14 +189,52 @@ public class BotService {
         return baos.toByteArray();
     }
 
-
-
-
     public static void sendHistoryForUser(TgSubscribe tgSubscribe, Long chatId) {
-        SendMessage sendMessage = new SendMessage(tgSubscribe.getChat_id(),
-                """
-                        History page yozilmoqda... %s %d
-                        """.formatted(tgSubscribe.getFirstname(), tgSubscribe.getChat_id()));
-        telegramBot.execute(sendMessage);
+        // Updated SQL query with the JOIN clause as per your request
+        String query = """
+        SELECT h.*
+        FROM public.history h
+                 JOIN public.tgsubscribe t ON t.id = h.subscriber_id
+        WHERE t.chat_id = ?
+        ORDER BY h.scanned_at DESC;
+        
+""";
+
+        try (Connection conn = DB.getConnection();
+             PreparedStatement statement = conn.prepareStatement(query)) {
+
+            statement.setLong(1, tgSubscribe.getChat_id());
+
+            ResultSet resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                StringBuilder messageBuilder = new StringBuilder();
+                messageBuilder.append("Foydalanuvchining barcha tarixlari:\n");
+
+                do {
+                    LocalDateTime scannedAt = resultSet.getTimestamp("scanned_at").toLocalDateTime();
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
+                    String formattedDate = scannedAt.format(formatter);
+
+                    messageBuilder.append(String.format("Kirish vaqti: %s\n", formattedDate));
+
+                } while (resultSet.next());
+
+                SendMessage sendMessage = new SendMessage(chatId, messageBuilder.toString());
+                telegramBot.execute(sendMessage);
+            } else {
+                String message = "Foydalanuvchining tarixini topib bo'lmadi.";
+                SendMessage sendMessage = new SendMessage(chatId, message);
+                telegramBot.execute(sendMessage);
+            }
+
+        } catch (Exception e) {
+            // Handle any exceptions that may occur
+            e.printStackTrace();
+            String message = "Xatolik yuz berdi, iltimos qayta urinib ko'ring.";
+            SendMessage sendMessage = new SendMessage(chatId, message);
+            telegramBot.execute(sendMessage);
+        }
     }
+
 }

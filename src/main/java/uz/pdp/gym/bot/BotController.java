@@ -63,7 +63,7 @@ public class BotController {
         if (message.text() != null && message.text().equals("/start")) {
             acceptStartWelcomeMessage(tgSubscribe);
         } else if (message.contact() != null) {
-            acceptContactAndChooseMenu(tgSubscribe, message.contact());
+            acceptContactAndValidate(tgSubscribe, message.contact());
             System.out.println(message.text());
         }
     }

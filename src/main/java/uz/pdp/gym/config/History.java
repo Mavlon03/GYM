@@ -19,6 +19,5 @@ public class History extends BaseEntity {
     @ManyToOne
     @JoinColumn(name = "subscriber_id", nullable = false)
     private TgSubscribe tgSubscribe;
-
     private LocalDateTime scanned_At;
 }

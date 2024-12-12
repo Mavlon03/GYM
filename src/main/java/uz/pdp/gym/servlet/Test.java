@@ -17,6 +17,7 @@ import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
 @WebServlet("/scan/qrcode")
@@ -28,7 +29,6 @@ public class Test extends HttpServlet {
 
         HttpSession session = req.getSession();
         Long sessionChatId = (Long) session.getAttribute("chatId");
-        Roles sessionRole = (Roles) session.getAttribute("role");
 
         if (id == null || id.isEmpty()) {
             resp.sendRedirect("/error");
@@ -62,9 +62,14 @@ public class Test extends HttpServlet {
                     history.setTgSubscribe(subscriber);
                     history.setScanned_At(LocalDateTime.now());
 
+
+
                     HistoryRepo historyRepo = new HistoryRepo();
                     historyRepo.save(history);
-                    BotService.telegramBot.execute(new SendMessage(id, "Hurmatli admin, xush kelibsiz!"));
+                    BotService.telegramBot.execute(new SendMessage(id, String.format("Hurmatli %s, xush kelibsiz!\n🕛Kelgan vaqti: %s✅",
+                            subscriber.getFirstname(),
+                            LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")))));
+
                     handleAdminActions(resp, subscriber);
                 } else {
                     writer.println("Bu foydalanuvchi admin emas, lekin o'z hisobiga kirmoqda.");
