@@ -22,9 +22,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.List;
 
 public class BotService {
 
@@ -167,7 +165,7 @@ public class BotService {
 
     public static void sendQRCodeForUser(TgSubscribe tgSubscribe, Long chatId) {
         try {
-            String qrData = "http://192.168.53.183:8080/scan/qrcode?chatId=" + tgSubscribe.getChat_id();
+            String qrData = "http://192.168.137.238:8080/scan/qrcode?chatId=" + tgSubscribe.getChat_id();
             byte[] qrImage = generateQRCode(qrData);
 
             SendPhoto sendPhoto = new SendPhoto(tgSubscribe.getChat_id(), qrImage);

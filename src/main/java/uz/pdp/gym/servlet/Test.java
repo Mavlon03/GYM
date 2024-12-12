@@ -27,9 +27,6 @@ public class Test extends HttpServlet {
         String id = req.getParameter("chatId");
         PrintWriter writer = resp.getWriter();
 
-        HttpSession session = req.getSession();
-        Long sessionChatId = (Long) session.getAttribute("chatId");
-
         if (id == null || id.isEmpty()) {
             resp.sendRedirect("/error");
             return;
@@ -53,16 +50,12 @@ public class Test extends HttpServlet {
         if (optionalSubscriber.isPresent()) {
             TgSubscribe subscriber = optionalSubscriber.get();
             System.out.println("subsId: " + subscriber.getChat_id());
-            System.out.println("SessionID" + sessionChatId);
 
             if (subscriber.getChat_id().equals(Long.parseLong(id))) {
-                if (Roles.ADMIN.toString().equalsIgnoreCase("Admin")) {
-                    writer.println("Admin uchun alohida ish bajarilmoqda.");
+                if (Roles.ADMIN.equals(subscriber.getRoles())) {
                     History history = new History();
                     history.setTgSubscribe(subscriber);
                     history.setScanned_At(LocalDateTime.now());
-
-
 
                     HistoryRepo historyRepo = new HistoryRepo();
                     historyRepo.save(history);
@@ -73,12 +66,11 @@ public class Test extends HttpServlet {
                     handleAdminActions(resp, subscriber);
                 } else {
                     writer.println("Bu foydalanuvchi admin emas, lekin o'z hisobiga kirmoqda.");
+                    sendSubscriberDetails(resp, id, subscriber);
                 }
-                return;
+             return;
             }
 
-
-            sendSubscriberDetails(resp, id, subscriber);
         } else {
             BotService.telegramBot.execute(new SendMessage(id, "Foydalanuvchi ma'lumotlari topilmadi."));
             resp.sendRedirect("/error");
