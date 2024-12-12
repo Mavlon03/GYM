@@ -190,14 +190,13 @@ public class BotService {
     }
 
     public static void sendHistoryForUser(TgSubscribe tgSubscribe, Long chatId) {
-        // Updated SQL query with the JOIN clause as per your request
         String query = """
         SELECT h.*
         FROM public.history h
                  JOIN public.tgsubscribe t ON t.id = h.subscriber_id
         WHERE t.chat_id = ?
         ORDER BY h.scanned_at DESC;
-        
+
 """;
 
         try (Connection conn = DB.getConnection();
@@ -213,25 +212,28 @@ public class BotService {
 
                 do {
                     LocalDateTime scannedAt = resultSet.getTimestamp("scanned_at").toLocalDateTime();
-                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
-                    String formattedDate = scannedAt.format(formatter);
 
-                    messageBuilder.append(String.format("Kirish vaqti: %s\n", formattedDate));
+                    DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                    DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+
+                    String formattedDate = scannedAt.format(dateFormatter);
+                    String formattedTime = scannedAt.format(timeFormatter);
+
+                    messageBuilder.append(String.format("🟢 Kirish vaqti: \n📅 %s \n🕒 %s ✅\n\n", formattedDate, formattedTime));
 
                 } while (resultSet.next());
 
                 SendMessage sendMessage = new SendMessage(chatId, messageBuilder.toString());
                 telegramBot.execute(sendMessage);
             } else {
-                String message = "Foydalanuvchining tarixini topib bo'lmadi.";
+                String message = "❌❌❌Foydalanuvchining tarixini topib bo'lmadi.";
                 SendMessage sendMessage = new SendMessage(chatId, message);
                 telegramBot.execute(sendMessage);
             }
 
         } catch (Exception e) {
-            // Handle any exceptions that may occur
             e.printStackTrace();
-            String message = "Xatolik yuz berdi, iltimos qayta urinib ko'ring.";
+            String message = "❗❗❗Xatolik yuz berdi, iltimos qayta urinib ko'ring.";
             SendMessage sendMessage = new SendMessage(chatId, message);
             telegramBot.execute(sendMessage);
         }
