@@ -5,6 +5,8 @@ import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.Query;
 import uz.pdp.gym.abs.BaseRepo;
 import uz.pdp.gym.bot.DB;
+import uz.pdp.gym.bot.TgState;
+import uz.pdp.gym.config.Roles;
 import uz.pdp.gym.config.TgSubscribe;
 
 import java.sql.Connection;
@@ -21,6 +23,26 @@ public class SubscriberRepo extends BaseRepo<TgSubscribe> {
 
     public SubscriberRepo() {
         super(TgSubscribe.class);
+    }
+
+    public static TgSubscribe getSubscriberById(Long chatId) {
+        String query = "select * from TgSubscribe where chat_id = ?";
+        try (Connection connection = DB.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setLong(1, chatId);
+            ResultSet resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                TgSubscribe subscriber = new TgSubscribe();
+                subscriber.setChat_id(resultSet.getLong("chat_id"));
+                subscriber.setFirstname(resultSet.getString("firstname"));
+                subscriber.setLastname(resultSet.getString("lastname"));
+                return subscriber;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public TgSubscribe findById(int id) {
@@ -98,42 +120,26 @@ public class SubscriberRepo extends BaseRepo<TgSubscribe> {
     }
 
 
-    public static TgSubscribe getSubscriberByPhone(String phone) {
-        System.out.println(phone);
-        String query = "select * from TgSubscribe where phone = ?";
+    public static TgSubscribe getSubscriberByPhone(String phone, String firstname) {
+        String query = "SELECT * FROM TgSubscribe WHERE phone = ? AND firstname = ?";
         try (Connection connection = DB.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
 
             statement.setString(1, phone);
+            statement.setString(2, firstname);
 
             ResultSet resultSet = statement.executeQuery();
 
-            // Agar subscriber topilsa
             if (resultSet.next()) {
                 TgSubscribe tgSubscribe = new TgSubscribe();
                 tgSubscribe.setPhone(resultSet.getString("phone"));
-
-                return tgSubscribe;
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        // Agar telefon raqami bo'yicha subscriber topilmasa, null qaytariladi
-        return null;
-    }
-
-    public TgSubscribe findByChatId(Long chatId) {
-        String query = "select * from TgSubscribe where chat_id = ?";
-        try (Connection connection = DB.getConnection();
-             PreparedStatement statement = connection.prepareStatement(query)) {
-
-            statement.setLong(1, chatId);
-
-            ResultSet resultSet = statement.executeQuery();
-
-            if (resultSet.next()) {
-                TgSubscribe tgSubscribe = new TgSubscribe();
+                tgSubscribe.setFirstname(resultSet.getString("firstname"));
+                tgSubscribe.setAge(resultSet.getInt("age"));
                 tgSubscribe.setChat_id(resultSet.getLong("chat_id"));
+                tgSubscribe.setStatus(resultSet.getBoolean("status"));
+                tgSubscribe.setId(resultSet.getInt("id"));
+                tgSubscribe.setRoles(Roles.valueOf(resultSet.getString("roles")));
+                tgSubscribe.setLastname(resultSet.getString("lastname"));
 
                 return tgSubscribe;
             }
@@ -142,5 +148,8 @@ public class SubscriberRepo extends BaseRepo<TgSubscribe> {
         }
         return null;
     }
+
+
+
 }
 

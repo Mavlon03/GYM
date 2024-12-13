@@ -13,19 +13,24 @@ import java.io.IOException;
 
 @WebServlet("/set/admin")
 public class SetAdminServlet extends HttpServlet {
+
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String idParam = req.getParameter("id");
+        String chat_id = req.getParameter("id");
 
-        if (idParam != null) {
-            int id = Integer.parseInt(idParam);
+        if (chat_id != null) {
+            int id = Integer.parseInt(chat_id);
             SubscriberRepo subscriberRepo = new SubscriberRepo();
-            TgSubscribe subscriber = subscriberRepo.findById(id); // ID orqali subscriber topiladi
+            TgSubscribe subscriber = subscriberRepo.findById(id);
 
             if (subscriber != null) {
-                subscriber.setRoles(Roles.ADMIN); // Rolni ADMIN qilib o‘zgartirish
-                subscriberRepo.update(subscriber); // Yangilash
-                resp.sendRedirect("/addAdmin.jsp"); // Yangilangan ma‘lumotlarni qaytadan yuklash
+                if (Roles.ADMIN.equals(subscriber.getRoles())) {
+                    subscriber.setRoles(Roles.USER);
+                } else {
+                    subscriber.setRoles(Roles.ADMIN);
+                }
+                subscriberRepo.update(subscriber);
+                resp.sendRedirect("/addAdmin.jsp");
             } else {
                 resp.getWriter().println("Subscriber not found!");
             }

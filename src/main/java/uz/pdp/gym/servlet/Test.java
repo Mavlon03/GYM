@@ -40,19 +40,18 @@ public class Test extends HttpServlet {
             resp.sendRedirect("/error");
             return;
         }
-
         SubscriberRepo subscriberRepo = new SubscriberRepo();
 
         Optional<TgSubscribe> optionalSubscriber = subscriberRepo.findAll().stream()
                 .filter(sub -> sub.getChat_id() != null && sub.getChat_id().equals(chatId))
                 .findFirst();
 
-        if (optionalSubscriber.isPresent()) {
-            TgSubscribe subscriber = optionalSubscriber.get();
-            System.out.println("subsId: " + subscriber.getChat_id());
+        if (id != null){
+            if (optionalSubscriber.isPresent()) {
+                TgSubscribe subscriber = optionalSubscriber.get();
+                System.out.println("subsId: " + subscriber.getChat_id());
 
-            if (subscriber.getChat_id().equals(Long.parseLong(id))) {
-                if (Roles.ADMIN.equals(subscriber.getRoles())) {
+                if (subscriber.getChat_id().equals(Long.parseLong(id))) {
                     History history = new History();
                     history.setTgSubscribe(subscriber);
                     history.setScanned_At(LocalDateTime.now());
@@ -64,17 +63,35 @@ public class Test extends HttpServlet {
                             LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")))));
 
                     handleAdminActions(resp, subscriber);
-                } else {
+                    return;
+                }
+
+            } else {
+                BotService.telegramBot.execute(new SendMessage(id, "Foydalanuvchi ma'lumotlari topilmadi."));
+                resp.sendRedirect("/error");
+            }
+        }
+        else {
+            if (optionalSubscriber.isPresent()) {
+                TgSubscribe subscriber = optionalSubscriber.get();
+                System.out.println("subsId: " + subscriber.getChat_id());
+
+                if (subscriber.getChat_id().equals(Long.parseLong(id))) {
                     writer.println("Bu foydalanuvchi admin emas, lekin o'z hisobiga kirmoqda.");
                     sendSubscriberDetails(resp, id, subscriber);
+                    return;
                 }
-             return;
+
+            } else {
+                BotService.telegramBot.execute(new SendMessage(id, "Foydalanuvchi ma'lumotlari topilmadi."));
+                resp.sendRedirect("/error");
             }
 
-        } else {
-            BotService.telegramBot.execute(new SendMessage(id, "Foydalanuvchi ma'lumotlari topilmadi."));
-            resp.sendRedirect("/error");
         }
+
+
+
+
     }
 
     private void handleAdminActions(HttpServletResponse resp, TgSubscribe adminSubscriber) throws IOException {
@@ -95,4 +112,3 @@ public class Test extends HttpServlet {
         resp.sendRedirect("/logout");
     }
 }
-

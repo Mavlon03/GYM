@@ -31,7 +31,7 @@ public class TgSubscribe extends BaseEntity {
     private Long chat_id;
 
     @Enumerated(EnumType.STRING)
-    private Roles roles ;
+    private Roles roles = Roles.USER ;
 
     @Lob
     private byte[] photo;

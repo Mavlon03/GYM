@@ -58,8 +58,7 @@ public class AddSubscriberServlet extends HttpServlet {
 
         SubscriberRepo subscriberRepo = new SubscriberRepo();
         subscriberRepo.save(tgSubscribe);
-        HttpSession session = req.getSession();
-        session.setAttribute("role", Roles.ADMIN);
+
 
         resp.sendRedirect("/add.jsp");
     }

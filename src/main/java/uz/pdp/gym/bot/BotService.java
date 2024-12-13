@@ -11,7 +11,6 @@ import com.pengrad.telegrambot.model.Contact;
 import com.pengrad.telegrambot.model.request.*;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.request.SendPhoto;
-import lombok.SneakyThrows;
 import uz.pdp.gym.config.TgSubscribe;
 
 import java.io.ByteArrayOutputStream;
@@ -40,11 +39,11 @@ public class BotService {
     }
 
     private static TgSubscribe getUserFromDB(Long chatId) {
-        String query = "select * from TgSubscribe where chat_id = ?";
+        String query = "SELECT * FROM TgSubscribe WHERE chat_id = ?";
         try (Connection connection = DB.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setLong(1, chatId);
-            var resultSet = statement.executeQuery();
+            ResultSet resultSet = statement.executeQuery();
 
             if (resultSet.next()) {
                 TgSubscribe user = new TgSubscribe();
@@ -59,20 +58,13 @@ public class BotService {
     }
 
     private static void saveUserToDB(TgSubscribe user) {
-        String query;
-
-        if (userPhoneExists(user.getPhone())) {
-            query = "update TgSubscribe set chat_id = ? where phone = ?";
-        } else {
-            query = "insert into TgSubscribe (chat_id, phone) values (?, ?)";
-        }
+        String query = "INSERT INTO TgSubscribe (chat_id, phone) VALUES (?, ?)";
 
         try (Connection connection = DB.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setLong(1, user.getChat_id());
             statement.setString(2, user.getPhone());
             statement.executeUpdate();
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -95,10 +87,14 @@ public class BotService {
         if (contact != null && contact.phoneNumber() != null) {
             String phone = PhoneNumber.fix(contact.phoneNumber());
 
-            // Telefon raqamini tekshirish
-            if (userPhoneExists(phone)) {
-                tgSubscribe.setPhone(phone);
-                saveOrUpdateUser(tgSubscribe);
+            TgSubscribe existingUser = getUserByPhone(phone);
+            if (existingUser != null) {
+                // Update the existing user's chat_id
+                existingUser.setChat_id(tgSubscribe.getChat_id());
+                updateUserChatId(existingUser);
+
+                // Delete the temporary user with only chat_id
+                deleteUserByChatId(tgSubscribe.getChat_id());
 
                 SendMessage successMessage = new SendMessage(tgSubscribe.getChat_id(), "Kontaktingiz qabul qilindi va yangilandi.");
                 successMessage.replyMarkup(new ReplyKeyboardRemove());
@@ -109,14 +105,24 @@ public class BotService {
                 telegramBot.execute(menuMessage);
                 tgSubscribe.setTgState(TgState.CHOOSE);
             } else {
-                SendMessage errorMessage = new SendMessage(tgSubscribe.getChat_id(), "Telefon raqam noto'g'ri. Iltimos, qayta tekshirib yuboring.");
-                telegramBot.execute(errorMessage);
+                tgSubscribe.setPhone(phone);
+                saveOrUpdateUser(tgSubscribe);
+
+                SendMessage successMessage = new SendMessage(tgSubscribe.getChat_id(), "Telefon raqamingiz saqlandi.");
+                successMessage.replyMarkup(new ReplyKeyboardRemove());
+                telegramBot.execute(successMessage);
+
+                SendMessage menuMessage = new SendMessage(tgSubscribe.getChat_id(), "Menuni tanlang:");
+                menuMessage.replyMarkup(generateInlineMenu());
+                telegramBot.execute(menuMessage);
+                tgSubscribe.setTgState(TgState.CHOOSE);
             }
         } else {
             SendMessage errorMessage = new SendMessage(tgSubscribe.getChat_id(), "Iltimos, telefon raqamingizni qayta yuboring.");
             telegramBot.execute(errorMessage);
         }
     }
+
 
     private static InlineKeyboardMarkup generateInlineMenu() {
         InlineKeyboardButton showHistoryButton = new InlineKeyboardButton("Show History").callbackData("SHOW_HISTORY");
@@ -165,7 +171,7 @@ public class BotService {
 
     public static void sendQRCodeForUser(TgSubscribe tgSubscribe, Long chatId) {
         try {
-            String qrData = "http://192.168.137.238:8080/scan/qrcode?chatId=" + tgSubscribe.getChat_id();
+            String qrData = "http://192.168.53.183:8080/scan/qrcode?chatId=" + tgSubscribe.getChat_id();
             byte[] qrImage = generateQRCode(qrData);
 
             SendPhoto sendPhoto = new SendPhoto(tgSubscribe.getChat_id(), qrImage);
@@ -189,11 +195,11 @@ public class BotService {
 
     public static void sendHistoryForUser(TgSubscribe tgSubscribe, Long chatId) {
         String query = """
-        SELECT h.*
-        FROM public.history h
-                 JOIN public.tgsubscribe t ON t.id = h.subscriber_id
-        WHERE t.chat_id = ?
-        ORDER BY h.scanned_at DESC;
+        select h.*
+        from public.history h
+                 join public.tgsubscribe t ON t.id = h.subscriber_id
+        where t.chat_id = ?
+        order by h.scanned_at DESC;
 
 """;
 
@@ -236,5 +242,45 @@ public class BotService {
             telegramBot.execute(sendMessage);
         }
     }
+    private static TgSubscribe getUserByPhone(String phone) {
+        String query = "SELECT * FROM TgSubscribe WHERE phone = ?";
+        try (Connection connection = DB.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, phone);
+            ResultSet resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                TgSubscribe user = new TgSubscribe();
+                user.setChat_id(resultSet.getLong("chat_id"));
+                user.setPhone(resultSet.getString("phone"));
+                return user;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+    private static void updateUserChatId(TgSubscribe user) {
+        String query = "UPDATE TgSubscribe SET chat_id = ? WHERE phone = ?";
+        try (Connection connection = DB.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setLong(1, user.getChat_id());
+            statement.setString(2, user.getPhone());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    private static void deleteUserByChatId(Long chatId) {
+        String query = "DELETE FROM TgSubscribe WHERE chat_id = ? AND phone IS NULL";
+        try (Connection connection = DB.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setLong(1, chatId);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
 
 }
