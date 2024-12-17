@@ -15,6 +15,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import static uz.pdp.gym.MyListener.EMF;
 
@@ -56,7 +57,7 @@ public class SubscriberRepo extends BaseRepo<TgSubscribe> {
     public void update(TgSubscribe subscriber) {
         try (EntityManager entityManager = EMF.createEntityManager()) {
             entityManager.getTransaction().begin();
-            entityManager.merge(subscriber); // Ma‘lumotlarni yangilash
+            entityManager.merge(subscriber);
             entityManager.getTransaction().commit();
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -150,6 +151,20 @@ public class SubscriberRepo extends BaseRepo<TgSubscribe> {
     }
 
 
+    public List<Object[]> dailySubscribers() {
+        try (EntityManager entityManager = EMF.createEntityManager()) {
+            return entityManager.createNativeQuery("""
+                    select
+           to_char(s.createdat, 'YYYY-MM-DD' ) as date,
+           count(*) as visitor_count from tgsubscribe as s
+       group by
+           to_char(s.createdat, 'YYYY-MM-DD')
+       order by date;
+        """).getResultList();
+        } catch (Exception e) {
+            throw new RuntimeException("Error retrieving daily subscribers", e);
+        }
+    }
 
 }
 

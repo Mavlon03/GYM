@@ -50,8 +50,8 @@ public class Test extends HttpServlet {
             if (optionalSubscriber.isPresent()) {
                 TgSubscribe subscriber = optionalSubscriber.get();
                 System.out.println("subsId: " + subscriber.getChat_id());
-
-                if (subscriber.getChat_id().equals(Long.parseLong(id))) {
+                System.out.println(subscriber);
+                if (subscriber.getChat_id().equals(Long.parseLong(id)) && subscriber.getRoles().equals(Roles.ADMIN)) {
                     History history = new History();
                     history.setTgSubscribe(subscriber);
                     history.setScanned_At(LocalDateTime.now());

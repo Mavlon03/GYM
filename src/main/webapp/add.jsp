@@ -39,6 +39,8 @@
     </form>
 </div>
 
+<a href="/report.jsp" class="btn btn success">Report</a>
+
 <table class="table mt-3">
     <thead>
     <tr>
